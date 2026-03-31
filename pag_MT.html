@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+<meta charset="UTF-8">
+<title>Métodos Numéricos Interactivos</title>
+
+<style>
+
+body{
+font-family:Segoe UI;
+background:#0f172a;
+color:white;
+text-align:center;
+}
+
+.container{
+width:900px;
+margin:auto;
+}
+
+.card{
+background:#1e293b;
+padding:20px;
+border-radius:10px;
+margin-top:20px;
+}
+
+input{
+width:60px;
+margin:3px;
+padding:5px;
+text-align:center;
+border-radius:5px;
+border:none;
+}
+
+button{
+background:#22c55e;
+border:none;
+padding:10px 20px;
+border-radius:8px;
+cursor:pointer;
+color:white;
+}
+
+button:hover{
+background:#16a34a;
+}
+
+.result{
+margin-top:15px;
+background:#020617;
+padding:10px;
+border-radius:8px;
+}
+
+</style>
+</head>
+
+
+<body>
+
+<h1>🔢 Métodos Numéricos</h1>
+<p>Resolución de Sistemas de Ecuaciones Lineales</p>
+
+<div class="container">
+
+<div class="card">
+
+<h3>Tamaño del sistema</h3>
+
+<input id="size" type="number" value="4" min="2" max="8">
+
+<button onclick="crearSistema()">Crear matriz</button>
+
+<div id="matriz"></div>
+
+<br>
+
+<button onclick="resolver()">Resolver Sistema</button>
+
+</div>
+
+
+<div class="card">
+
+<h3>Resultados</h3>
+
+<div id="exacta" class="result"></div>
+<div id="gs" class="result"></div>
+<div id="sor" class="result"></div>
+<div id="cg" class="result"></div>
+
+</div>
+
+</div>
+
+
+<script>
+
+function crearSistema(){
+
+let n=parseInt(document.getElementById("size").value)
+
+let html="<table>"
+
+for(let i=0;i<n;i++){
+
+html+="<tr>"
+
+for(let j=0;j<n;j++){
+
+html+=`<td><input id="a${i}_${j}" value="0"></td>`
+
+}
+
+html+=`<td>|</td><td><input id="b${i}" value="0"></td>`
+
+html+="</tr>"
+}
+
+html+="</table>"
+
+document.getElementById("matriz").innerHTML=html
+
+}
+
+crearSistema()
+
+
+function getA(i,j){
+
+return parseFloat(document.getElementById(`a${i}_${j}`).value)
+
+}
+
+function getB(i){
+
+return parseFloat(document.getElementById(`b${i}`).value)
+
+}
+
+
+
+function resolver(){
+
+let n=parseInt(document.getElementById("size").value)
+
+let A=[]
+let b=[]
+
+for(let i=0;i<n;i++){
+
+A[i]=[]
+
+for(let j=0;j<n;j++){
+
+A[i][j]=getA(i,j)
+
+}
+
+b[i]=getB(i)
+
+}
+
+solucionExacta(A,b,n)
+
+gaussSeidel(A,b,n)
+
+sor(A,b,n)
+
+gradienteConjugado(A,b,n)
+
+}
+
+
+
+function solucionExacta(A,b,n){
+
+let x=Array(n).fill(0)
+
+let M=A.map(r=>r.slice())
+let B=b.slice()
+
+for(let i=0;i<n;i++){
+
+for(let j=i+1;j<n;j++){
+
+let f=M[j][i]/M[i][i]
+
+for(let k=0;k<n;k++){
+
+M[j][k]-=f*M[i][k]
+
+}
+
+B[j]-=f*B[i]
+
+}
+
+}
+
+for(let i=n-1;i>=0;i--){
+
+let suma=0
+
+for(let j=i+1;j<n;j++) suma+=M[i][j]*x[j]
+
+x[i]=(B[i]-suma)/M[i][i]
+
+}
+
+document.getElementById("exacta").innerHTML=
+
+"<b>Solución Exacta:</b> "+x.map(v=>v.toFixed(4))
+
+}
+
+
+
+function error(x1,x2){
+
+let e=0
+
+for(let i=0;i<x1.length;i++){
+
+e=Math.max(e,Math.abs((x1[i]-x2[i])/x1[i]))
+
+}
+
+return e*100
+
+}
+
+
+
+function gaussSeidel(A,b,n){
+
+let x=Array(n).fill(0)
+let iter=0
+let err=1
+
+while(err>0.001 && iter<100){
+
+let x_old=x.slice()
+
+for(let i=0;i<n;i++){
+
+let suma=b[i]
+
+for(let j=0;j<n;j++){
+
+if(j!=i) suma-=A[i][j]*x[j]
+
+}
+
+x[i]=suma/A[i][i]
+
+}
+
+err=error(x,x_old)
+iter++
+
+}
+
+document.getElementById("gs").innerHTML=
+
+"<b>Gauss-Seidel</b><br>Solución: "+x.map(v=>v.toFixed(4))+
+"<br>Iteraciones: "+iter+
+"<br>Error %: "+err.toFixed(5)
+
+}
+
+
+
+function sor(A,b,n){
+
+let w=1.1
+
+let x=Array(n).fill(0)
+
+let iter=0
+let err=1
+
+while(err>0.001 && iter<100){
+
+let x_old=x.slice()
+
+for(let i=0;i<n;i++){
+
+let suma=b[i]
+
+for(let j=0;j<n;j++){
+
+if(j!=i) suma-=A[i][j]*x[j]
+
+}
+
+let nuevo=suma/A[i][i]
+
+x[i]=(1-w)*x[i]+w*nuevo
+
+}
+
+err=error(x,x_old)
+iter++
+
+}
+
+document.getElementById("sor").innerHTML=
+
+"<b>SOR</b><br>Solución: "+x.map(v=>v.toFixed(4))+
+"<br>Iteraciones: "+iter+
+"<br>Error %: "+err.toFixed(5)
+
+}
+
+
+
+function gradienteConjugado(A,b,n){
+
+function dot(a,b){
+
+return a.reduce((s,v,i)=>s+v*b[i],0)
+
+}
+
+function matVec(A,x){
+
+return A.map(r=>dot(r,x))
+
+}
+
+function sub(a,b){
+
+return a.map((v,i)=>v-b[i])
+
+}
+
+function add(a,b){
+
+return a.map((v,i)=>v+b[i])
+
+}
+
+function scalar(v,k){
+
+return v.map(x=>x*k)
+
+}
+
+let x=Array(n).fill(0)
+
+let r=sub(b,matVec(A,x))
+
+let p=r.slice()
+
+let iter=0
+
+while(iter<n){
+
+let Ap=matVec(A,p)
+
+let alpha=dot(r,r)/dot(p,Ap)
+
+x=add(x,scalar(p,alpha))
+
+let r2=sub(r,scalar(Ap,alpha))
+
+let beta=dot(r2,r2)/dot(r,r)
+
+p=add(r2,scalar(p,beta))
+
+r=r2
+
+iter++
+
+}
+
+document.getElementById("cg").innerHTML=
+
+"<b>Gradiente Conjugado</b><br>Solución: "+x.map(v=>v.toFixed(4))+
+"<br>Iteraciones: "+iter
+
+}
+
+</script>
+
+</body>
+</html>
